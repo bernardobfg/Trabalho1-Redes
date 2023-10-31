@@ -3,8 +3,8 @@ import threading
 import os
 import time
 
-PORTA = 20003
-SERVER = 'localhost'
+PORTA = 18000
+SERVER = ''
 ADDR = (SERVER, PORTA)
 HEADER = 64
 FORMAT = 'utf-8'
@@ -17,29 +17,37 @@ server.bind(ADDR)
 conexoes = []
 
 def handler(conn, addr):
-    print(f'[NOVA CONEXÃO]: {addr} se conectou!')
+    try:
+        print(f'[NOVA CONEXÃO]: {addr} se conectou!')
 
-    conectado = True
-    # Adiciona a nova conexão à lista
-    conexoes.append(conn)
-    
-    while conectado:
-        msg_length = conn.recv(HEADER).decode(FORMAT)
-        if msg_length:
-            msg_length = int(msg_length)
-            msg = conn.recv(msg_length).decode(FORMAT)
-            if msg == DISCONNECT:
-                conectado = False
+        conectado = True
+        # Adiciona a nova conexão à lista
+        conexoes.append(conn)
+        
+        while conectado:
+            msg_length = conn.recv(HEADER).decode(FORMAT)
+            if msg_length:
+                msg_length = int(msg_length)
+                msg = conn.recv(msg_length).decode(FORMAT)
+                if msg == DISCONNECT:
+                    conectado = False
+                    print(f"Desconctando: {addr}")
+                    continue
 
-            print(f'[{time.ctime()}][{addr}]: {msg}')
-            
-            # Envia a mensagem para todos os clientes
-            for conexao in conexoes:
-                conexao.send(f'[{time.ctime()}][{addr}]: {msg}'.encode(FORMAT))
+                print(f'[{time.ctime()}][{addr}]: {msg}')
+                
+                # Envia a mensagem para todos os clientes
+                for conexao in conexoes:
+                    conexao.send(f'[{time.ctime()}][{addr}]: {msg}'.encode(FORMAT))
 
-    # Remove a conexão da lista após desconectar
-    conexoes.remove(conn)
-    conn.close()
+    except Exception as e:
+        print(f"Erro: {e}")
+    finally:
+        # Remove a conexão da lista após desconectar
+        if conn in conexoes:
+            conexoes.remove(conn)
+        conn.close()
+
 
 def start():
     server.listen()
